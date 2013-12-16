@@ -39,7 +39,6 @@ def clean_info_title(title):
         title: a string
     Returns:
         A cleaned string
-    TODO: for Ricter
     """
     m = re.match(ur'(.*)[\s\S]+第[\w\W]季', title.split('（')[0].decode('utf-8'))
     if m: return m.group(1).encode('utf-8')
@@ -56,30 +55,25 @@ def update_info_list(sort, info_list):
         info_list: a object of info list, not a json
     Returns:
         An int counter counting changed info obj
-    TODO: for Ricter
     """
-    serial_list = [str(data) for data in Info.objects.all()]
     info_title_list = [clean_info_title(info['title'].encode('utf-8')) for info in info_list]
-    for info in info_list:
-        clean_title = clean_info_title(info['title'].encode('utf-8'))
-        if not clean_title in serial_list:
-            Info(
-                sort = sort,
-                title = clean_title,
-                tags = None,
-                douban = None,
-                weekday = info['weekday'],
-                bgm_count = info['bgmcount'],
-                images = info['cover'],
-                now_playing = 0
-            ).save()
-    for serial in serial_list:
-        if not serial in info_title_list:
-            p = Info.objects.get(title=serial)
-            p.now_playing = 1
-            p.save()
+    over_list = [str(title) for title in Info.objects.all() if str(title) not in info_title_list]
+    new_list  = [info for info in info_list if not Info.objects.filter(\
+                title=clean_info_title(info['title'].encode('utf-8')))]
 
-    """for data in Info.objects.all():
-        print data
-    print Info.objects.all().count(), len(info_list)"""
-    return abs(len(serial_list) - len(info_list))
+    for info in new_list:
+        Info(
+            sort = sort,
+            title = clean_info_title(info['title'].encode('utf-8')),
+            tags = None,
+            douban = None,
+            weekday = info['weekday'],
+            bgm_count = info['bgmcount'],
+            images = info['cover'],
+            now_playing = 0
+        ).save()
+    for over in over_list:
+        p = Info.objects.get(title=over)
+        p.now_playing = 1
+        p.save()
+    return len(over_list) + len(new_list)
